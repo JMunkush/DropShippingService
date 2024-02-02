@@ -1,0 +1,62 @@
+version: '3'
+services:
+
+  pg:
+    networks:
+      - dropshippingnetwork
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: cjdropshipping
+
+  rabbitmq:
+    networks:
+      - dropshippingnetwork
+    image: rabbitmq:management
+    environment:
+      RABBITMQ_DEFAULT_USER: "user"
+      RABBITMQ_DEFAULT_PASS: "pass"
+    ports:
+      - "15672:15672"
+
+  dispatcher:
+    depends_on:
+      - rabbitmq
+    networks:
+      - dropshippingnetwork
+    build:
+      context: ./dispatcher
+      dockerfile: Dockerfile
+    environment:
+      CJ_EMAIL: your-cj-email
+      CJ_PASSWORD: your-cj-Password
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: pass
+    ports:
+      - "8080:8080"
+
+  node:
+    depends_on:
+      - pg
+      - rabbitmq
+    networks:
+      - dropshippingnetwork
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    environment:
+      DB_PORT: 5432
+      DB_NAME: cjdropshipping
+      DB_HOST: pg
+      DB_USERNAME: postgres
+      DB_PASSWORD: root
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: pass
+
+networks:
+  dropshippingnetwork:
